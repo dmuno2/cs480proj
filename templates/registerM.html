@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manager Registration</title>
+</head>
+<body>
+    <h2>Register as Manager</h2>
+    <form method="POST">
+        Name: <input type="text" name="name" required><br>
+        SSN: <input type="text" name="ssn" required><br>
+        Email: <input type="email" name="email" required><br>
+        <input type="submit" value="Register">
+    </form>
+    <p>Already registered? <a href="{{ url_for('manager_login') }}">Login here</a>.</p>
+</body>
+</html>

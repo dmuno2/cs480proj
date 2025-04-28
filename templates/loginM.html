@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manager Login</title>
+</head>
+<body>
+    <h2>Login as Manager</h2>
+    <form method="POST">
+        SSN: <input type="text" name="ssn" required><br>
+        <input type="submit" value="Login">
+    </form>
+    <p>Don't have an account? <a href="{{ url_for('register') }}">Register here</a>.</p>
+</body>
+</html>

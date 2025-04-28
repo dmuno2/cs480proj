@@ -1,8 +1,9 @@
 from flask import Flask, request, redirect, render_template, url_for, session, flash
 from db_conn import get_db_connection
+import psycopg2
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key_here"  # Needed for login sessions
+app.secret_key = "dev"  # Needed for login sessions
 
 # Homepage
 @app.route('/')
@@ -27,7 +28,28 @@ def manager_login():
         else:
             flash('Invalid SSN. Please try again.')
             return redirect(url_for('manager_login'))
-    return render_template('manager_login.html')
+    return render_template('loginM.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        name = request.form['name']
+        ssn = request.form['ssn']
+        email = request.form['email']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            cur.execute("INSERT INTO managers (name, ssn, email) VALUES (%s, %s, %s)", (name, ssn, email))
+            conn.commit()
+            return redirect(url_for('login'))
+        except psycopg2.errors.UniqueViolation:
+            conn.rollback()
+            return "SSN already registered."
+        finally:
+            cur.close()
+            conn.close()
+    return render_template('registerM.html')
 
 @app.route('/manager/dashboard')
 def manager_dashboard():
@@ -115,4 +137,4 @@ def logout():
 
 # Run app
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
