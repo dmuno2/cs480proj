@@ -40,9 +40,9 @@ def register():
         conn = get_db_connection()
         cur = conn.cursor()
         try:
-            cur.execute("INSERT INTO managers (name, ssn, email) VALUES (%s, %s, %s)", (name, ssn, email))
+            cur.execute("INSERT INTO manager (name, ssn, email) VALUES (%s, %s, %s)", (name, ssn, email))
             conn.commit()
-            return redirect(url_for('login'))
+            return redirect(url_for('loginM'))
         except psycopg2.errors.UniqueViolation:
             conn.rollback()
             return "SSN already registered."
