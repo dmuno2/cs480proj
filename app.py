@@ -274,6 +274,48 @@ def book_rent():
 
     return render_template('book.html')
 
+@app.route('/client/add_creditcard', methods=['GET', 'POST'])
+def add_creditcard():
+    if 'client_email' not in session:
+        return redirect(url_for('client_login'))
+
+    if request.method == 'POST':
+        card_num = request.form['card_num']
+        road_name = request.form['road_name']
+        number = request.form['number']
+        city = request.form['city']
+        email = session['client_email']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            # First, insert the address if it's not already there
+            cur.execute("""
+                INSERT INTO Address (road_name, number, city)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (road_name, number, city) DO NOTHING;
+            """, (road_name, number, city))
+
+            # Then insert credit card
+            cur.execute("""
+                INSERT INTO CreditCard (card_num, email, road_name, number, city)
+                VALUES (%s, %s, %s, %s, %s);
+            """, (card_num, email, road_name, number, city))
+
+            conn.commit()
+            flash("Credit card added successfully!")
+        except Exception as e:
+            conn.rollback()
+            flash(f"Error adding credit card: {e}")
+        finally:
+            cur.close()
+            conn.close()
+
+        return redirect(url_for('client_dashboard'))
+
+    return render_template('add_creditcard.html')
+
+
 
 # ------------- Driver -------------
 @app.route('/driver/login', methods=['GET', 'POST'])
@@ -301,6 +343,78 @@ def driver_dashboard():
     if 'driver_name' not in session:
         return redirect(url_for('driver_login'))
     return render_template('driver_dashboard.html')
+
+@app.route('/driver/add_address', methods=['GET', 'POST'])
+def add_driver_address():
+    if 'driver_name' not in session:
+        return redirect(url_for('driver_login'))
+
+    if request.method == 'POST':
+        road_name = request.form['road_name']
+        number = request.form['number']
+        city = request.form['city']
+        driver_name = session['driver_name']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            # First insert the address if it doesn't exist
+            cur.execute("""
+                INSERT INTO Address (road_name, number, city)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (road_name, number, city) DO NOTHING;
+            """, (road_name, number, city))
+
+            # Then update Driver's address
+            cur.execute("""
+                UPDATE Driver
+                SET road_name = %s, number = %s, city = %s
+                WHERE name = %s;
+            """, (road_name, number, city, driver_name))
+
+            conn.commit()
+            flash('Address added/updated successfully!')
+        except Exception as e:
+            conn.rollback()
+            flash(f"Error adding address: {e}")
+        finally:
+            cur.close()
+            conn.close()
+
+        return redirect(url_for('driver_dashboard'))
+
+    return render_template('add_driver_address.html')
+
+
+@app.route('/driver/add_car', methods=['GET', 'POST'])
+def add_car_driver():
+    if 'driver_name' not in session:
+        return redirect(url_for('driver_login'))
+
+    if request.method == 'POST':
+        modelid = request.form['modelid']
+        driver_name = session['driver_name']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            cur.execute("""
+                INSERT INTO CanDrive (driver_name, modelid)
+                VALUES (%s, %s);
+            """, (driver_name, modelid))
+            conn.commit()
+            flash('Car model added successfully for you!')
+        except Exception as e:
+            conn.rollback()
+            flash(f"Error adding car model: {e}")
+        finally:
+            cur.close()
+            conn.close()
+
+        return redirect(url_for('driver_dashboard'))
+
+    return render_template('add_car_driver.html')
+
 
 # ------------- Logout -------------
 @app.route('/logout')

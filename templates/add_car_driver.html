@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Car to Drive</title>
+</head>
+<body>
+
+
+
+<h2>Add a Car Model You Can Drive</h2>
+
+<form method="POST">
+    Model ID: <input type="text" name="modelid" required><br>
+    <input type="submit" value="Add Model">
+</form>
+
+<p><a href="{{ url_for('driver_dashboard') }}">Back to Dashboard</a></p>
+
+</body>
+</html>

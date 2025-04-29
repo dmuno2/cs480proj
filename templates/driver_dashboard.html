@@ -4,6 +4,12 @@
     <title>Driver Dashboard</title>
 </head>
 <body>
+    <h2>Driver Dashboard</h2>
+    <ul>
+        <li><a href="{{ url_for('add_driver_address') }}">Add/Update Address</a></li>
+        <li><a href="{{ url_for('add_car_driver') }}">Add Car Model You Can Drive</a></li>
+    </ul>
+
     <h2>Welcome Driver!</h2>
     <p><a href="/logout">Logout</a></p>
 </body>
