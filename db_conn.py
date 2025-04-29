@@ -1,15 +1,28 @@
-import psycopg2
+# import psycopg2
 
-database = 'cs480_proj'
-username = 'postgres'
-pwd = 'Database2003@'
-port_id = 5432
+# database = '480 Group Project'
+# username = 'postgres'
+# pwd = 'DataBase@2025'
+# port_id = 5432
+
+# def get_db_connection():
+#     conn = psycopg2.connect(
+#         host="localhost",
+#         database="480 Group Project",
+#         user="postgres",
+#         password="DataBase@2025"
+#     )
+#     return conn
+
+import psycopg2
 
 def get_db_connection():
     conn = psycopg2.connect(
-        host="localhost",
-        database="cs480_proj",
-        user="postgres",
-        password="Database2003@"
+        host="ep-snowy-mouse-a484zcoz-pooler.us-east-1.aws.neon.tech",  # from your Neon connection screen
+        database="neondb",  # your database name
+        user="Shayan",  # from your env.txt, PGUSER=Shayan
+        password="npg_fU8HrEaCt2TD",  # from your env.txt, PGPASSWORD=...
+        port=5432,
+        sslmode='require'  # Neon requires SSL
     )
     return conn

@@ -1,6 +1,7 @@
 from flask import Flask, request, redirect, render_template, url_for, session, flash
 from db_conn import get_db_connection
 import psycopg2
+import psycopg2.errors 
 
 app = Flask(__name__)
 app.secret_key = "dev"  # Needed for login sessions
@@ -42,7 +43,7 @@ def register():
         try:
             cur.execute("INSERT INTO manager (name, ssn, email) VALUES (%s, %s, %s)", (name, ssn, email))
             conn.commit()
-            return redirect(url_for('loginM'))
+            return redirect(url_for('manager_login'))
         except psycopg2.errors.UniqueViolation:
             conn.rollback()
             return "SSN already registered."
@@ -56,6 +57,44 @@ def manager_dashboard():
     if 'manager_ssn' not in session:
         return redirect(url_for('manager_login'))
     return render_template('manager_dashboard.html')
+
+@app.route('/manager/add_driver', methods=['GET', 'POST'])
+def add_driver():
+    if request.method == 'POST':
+        name = request.form['name']
+        road_name = request.form['road_name']
+        number = request.form['number']
+        city = request.form['city']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            # First, insert the address if it doesn't exist
+            cur.execute("""
+                INSERT INTO Address (road_name, number, city)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (road_name, number, city) DO NOTHING;
+            """, (road_name, number, city))
+
+            # Now, insert the driver
+            cur.execute(
+                "INSERT INTO Driver (name, road_name, number, city) VALUES (%s, %s, %s, %s);",
+                (name, road_name, number, city)
+            )
+            conn.commit()
+            flash('Driver added successfully!')
+        except Exception as e:
+            conn.rollback()
+            flash(f"Error adding driver: {e}")
+        finally:
+            cur.close()
+            conn.close()
+
+        return redirect(url_for('manager_dashboard'))
+
+    return render_template('add_driver.html')
+
+
 
 # ------------- Client -------------
 @app.route('/client/register', methods=['GET', 'POST'])
@@ -101,6 +140,59 @@ def client_dashboard():
     if 'client_email' not in session:
         return redirect(url_for('client_login'))
     return render_template('client_dashboard.html')
+
+#lets clients search by car brand
+#search is case-insensitive because of ILIKE.
+@app.route('/client/search', methods=['GET', 'POST'])
+def search():
+    results = []
+    if request.method == 'POST':
+        brand = request.form['brand']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT * FROM Car WHERE brand ILIKE %s;",
+            ('%' + brand + '%',)
+        )
+        results = cur.fetchall()
+        cur.close()
+        conn.close()
+
+    return render_template('search.html', results=results)
+
+@app.route('/client/book', methods=['GET', 'POST'])
+def book_rent():
+    if 'client_email' not in session:
+        return redirect(url_for('client_login'))
+
+    if request.method == 'POST':
+        rentid = request.form['rentid']
+        rent_date = request.form['rent_date']
+        driver_name = request.form['driver_name']
+        modelid = request.form['modelid']
+        client_email = session['client_email']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                "INSERT INTO Rent (rentid, rent_date, client_email, driver_name, modelid) VALUES (%s, %s, %s, %s, %s);",
+                (rentid, rent_date, client_email, driver_name, modelid)
+            )
+            conn.commit()
+            flash('Rent booked successfully!')
+        except Exception as e:
+            conn.rollback()
+            flash(f"Error booking rent: {e}")
+        finally:
+            cur.close()
+            conn.close()
+
+        return redirect(url_for('client_dashboard'))
+
+    return render_template('book.html')
+
 
 # ------------- Driver -------------
 @app.route('/driver/login', methods=['GET', 'POST'])

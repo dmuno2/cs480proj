@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Driver</title>
+</head>
+<body>
+    <h2>Add a New Driver</h2>
+    <form method="POST">
+        Name: <input type="text" name="name" required><br>
+        Road Name: <input type="text" name="road_name" required><br>
+        Number: <input type="number" name="number" required><br>
+        City: <input type="text" name="city" required><br>
+        <input type="submit" value="Add Driver">
+    </form>
+    <p><a href="{{ url_for('manager_dashboard') }}">Back to Manager Dashboard</a></p>
+</body>
+</html>
