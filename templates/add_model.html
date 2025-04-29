@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Model</title>
+</head>
+<body>
+    <h2>Add Car Models</h2>
+    <form method="POST">
+        Modelid: <input type="text" name="modelid" required><br>
+        Carid: <input type="text" name="carid" required><br>
+        Color: <input type="text" name="color" required><br>
+        Construction Year: <input type="number" name="construction_year" required><br>
+        Transmission: <input type="text" name="transmission" required><br>
+        <input type="submit" value="Add Models">
+    </form>
+    <p><a href="{{ url_for('manager_dashboard') }}">Back to Manager Dashboard</a></p>
+</body>
+</html>

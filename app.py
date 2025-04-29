@@ -94,6 +94,87 @@ def add_driver():
 
     return render_template('add_driver.html')
 
+@app.route('/manager/add_car', methods=['GET', 'POST'])
+def add_car():
+    if request.method == 'POST':
+        carid = request.form['carid']
+        brand = request.form['brand']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+
+            # Now, insert the driver
+            cur.execute(
+                "INSERT INTO Car (carid, brand) VALUES (%s, %s);",
+                (carid, brand)
+            )
+            conn.commit()
+            flash('Car added successfully!')
+        except Exception as e:
+            conn.rollback()
+            flash(f"Error adding car: {e}")
+        finally:
+            cur.close()
+            conn.close()
+
+        return redirect(url_for('manager_dashboard'))
+
+    return render_template('add_car.html')
+
+@app.route('/manager/add_model', methods=['GET', 'POST'])
+def add_model():
+    if request.method == 'POST':
+        modelid = request.form['modelid']
+        carid = request.form['carid']
+        color = request.form['color']
+        #construction_year = int(request.form['construction_year'])
+        construction_year = request.form['construction_year']
+        transmission = request.form['transmission']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+
+            # Now, insert the driver
+            cur.execute(
+                "INSERT INTO model (modelid, carid, color, construction_year, transmission) VALUES (%s, %s, %s, %s, %s);",
+                (modelid, carid, color, construction_year, transmission)
+            )
+            conn.commit()
+            flash('Model added successfully!')
+        except Exception as e:
+            conn.rollback()
+            flash(f"Error adding model: {e}")
+        finally:
+            cur.close()
+            conn.close()
+
+        return redirect(url_for('manager_dashboard'))
+
+    return render_template('add_model.html')
+
+@app.route('/manager/delete_driver', methods=['GET', 'POST'])
+def delete_driver():
+    if request.method == 'POST':
+        driver_name = request.form['name']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            cur.execute("DELETE FROM Driver WHERE name = %s;", (driver_name,))
+            conn.commit()
+            flash('Driver deleted successfully!')
+        except Exception as e:
+            conn.rollback()
+            flash(f"Error deleting driver: {e}")
+        finally:
+            cur.close()
+            conn.close()
+
+        return redirect(url_for('manager_dashboard'))
+
+    return render_template('delete_driver.html')
 
 
 # ------------- Client -------------
