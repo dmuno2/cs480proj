@@ -4,18 +4,6 @@
 # username = 'postgres'
 # pwd = 'DataBase@2025'
 # port_id = 5432
-
-# def get_db_connection():
-#     conn = psycopg2.connect(
-#         host="localhost",
-#         database="480 Group Project",
-#         user="postgres",
-#         password="DataBase@2025"
-#     )
-#     return conn
-
-import psycopg2
-
 def get_db_connection():
     conn = psycopg2.connect(
         host="ep-snowy-mouse-a484zcoz-pooler.us-east-1.aws.neon.tech",  # from your Neon connection screen
