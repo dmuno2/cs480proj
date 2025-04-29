@@ -256,6 +256,32 @@ def client_city_match():
 
     return render_template('client_city_match.html', results=results)
 
+@app.route('/manager/top_clients', methods=['GET', 'POST'])
+def top_clients():
+    results = []
+
+    if request.method == 'POST':
+        k = request.form.get('k')
+
+        if k and k.isdigit() and int(k) > 0:
+            k = int(k)
+
+            conn = get_db_connection()
+            cur = conn.cursor()
+
+            cur.execute('''
+                SELECT Client.name, Client.email, COUNT(*) AS rent_count
+                FROM Rent
+                JOIN Client ON Rent.client_email = Client.email
+                GROUP BY Client.name, Client.email
+                ORDER BY rent_count DESC
+                LIMIT %s
+            ''', (k,))
+
+            results = cur.fetchall()
+            conn.close()
+
+    return render_template('top_clients.html', results=results)
 
 
 # ------------- Client -------------
@@ -635,4 +661,4 @@ def logout():
 
 # Run app
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=True, port=5003)
