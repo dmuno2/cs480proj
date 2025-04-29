@@ -212,12 +212,19 @@ def manager_view_driver_stats():
 
     query = '''
         SELECT d.name AS driver_name,
-               COUNT(r.rentid) AS total_rents,
-               ROUND(AVG(rv.rating), 2) AS average_rating
+               COALESCE(rent_counts.total_rents, 0) AS total_rents,
+               ROUND(avg_ratings.average_rating, 2) AS average_rating
         FROM Driver d
-        LEFT JOIN Rent r ON d.name = r.driver_name
-        LEFT JOIN Review rv ON rv.name = d.name
-        GROUP BY d.name
+        LEFT JOIN (
+            SELECT driver_name, COUNT(*) AS total_rents
+            FROM Rent
+            GROUP BY driver_name
+        ) rent_counts ON d.name = rent_counts.driver_name
+        LEFT JOIN (
+            SELECT name AS driver_name, AVG(rating) AS average_rating
+            FROM Review
+            GROUP BY name
+        ) avg_ratings ON d.name = avg_ratings.driver_name
         ORDER BY total_rents DESC
     '''
     cursor.execute(query)
@@ -282,6 +289,45 @@ def top_clients():
             conn.close()
 
     return render_template('top_clients.html', results=results)
+
+@app.route('/manager/brand_report')
+def manager_brand_report():
+    if 'manager_ssn' not in session:
+        return redirect(url_for('manager_login'))
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    query = '''
+        SELECT 
+            c.brand,
+            ROUND(AVG(avg_rating.avg_rating), 2) AS average_rating,
+            COALESCE(SUM(rent_counts.total_rents), 0) AS total_rents
+        FROM car c
+        JOIN model m ON c.carid = m.carid
+
+        LEFT JOIN (
+            SELECT cd.modelid, AVG(rv.rating) AS avg_rating
+            FROM canDrive cd
+            JOIN review rv ON cd.driver_name = rv.name
+            GROUP BY cd.modelid
+        ) avg_rating ON m.modelid = avg_rating.modelid
+
+        LEFT JOIN (
+            SELECT modelid, COUNT(*) AS total_rents
+            FROM rent
+            GROUP BY modelid
+        ) rent_counts ON m.modelid = rent_counts.modelid
+
+        GROUP BY c.brand
+        ORDER BY total_rents DESC
+    '''
+
+    cur.execute(query)
+    report = cur.fetchall()
+    conn.close()
+
+    return render_template('brand_report.html', report=report)
 
 
 # ------------- Client -------------
@@ -661,4 +707,4 @@ def logout():
 
 # Run app
 if __name__ == '__main__':
-    app.run(debug=True, port=5003)
+    app.run(debug=True, port=5001)
