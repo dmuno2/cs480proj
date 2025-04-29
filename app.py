@@ -226,6 +226,37 @@ def manager_view_driver_stats():
 
     return render_template('manager_driver_stats.html', drivers=drivers)
 
+@app.route('/manager/client_city_match', methods=['GET', 'POST'])
+def client_city_match():
+    results = []
+    if 'manager_ssn' not in session:
+        return redirect(url_for('manager_login'))
+
+    if request.method == 'POST':
+        city1 = request.form['city1']
+        city2 = request.form['city2']
+
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        query = '''
+            SELECT DISTINCT c.name, c.email
+            FROM Client c
+            JOIN LivesIn_Client lc ON c.email = lc.email
+            JOIN Address ca ON lc.road_name = ca.road_name AND lc.number = ca.number AND lc.city = ca.city
+            JOIN Rent r ON c.email = r.client_email
+            JOIN Driver d ON r.driver_name = d.name
+            JOIN Address da ON d.road_name = da.road_name AND d.number = da.number AND d.city = da.city
+            WHERE ca.city = %s AND da.city = %s
+        '''
+
+        cur.execute(query, (city1, city2))
+        results = cur.fetchall()
+        conn.close()
+
+    return render_template('client_city_match.html', results=results)
+
+
 
 # ------------- Client -------------
 @app.route('/client/register', methods=['GET', 'POST'])
@@ -455,6 +486,32 @@ def client_leave_review():
     return render_template('client_review.html')
 
 
+#client check past bookings
+@app.route('/client/rents', methods=['GET'])
+def client_rents():
+    if 'client_email' not in session:
+        return redirect(url_for('client_login'))  # Ensure client is logged in
+
+    email = session['client_email']
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # Join Rent -> Model -> Car to get brand, color, construction_year
+    cur.execute('''
+        SELECT Rent.rentid, Rent.rent_date, Car.brand, Model.construction_year, Model.color, Rent.driver_name
+        FROM Rent
+        JOIN Model ON Rent.modelid = Model.modelid
+        JOIN Car ON Model.carid = Car.carid
+        WHERE Rent.client_email = %s
+        ORDER BY Rent.rent_date ASC
+    ''', (email,))
+
+    rents = cur.fetchall()
+    conn.close()
+
+    return render_template('client_rents.html', rents=rents)
+
 # ------------- Driver -------------
 @app.route('/driver/login', methods=['GET', 'POST'])
 def driver_login():
@@ -578,4 +635,4 @@ def logout():
 
 # Run app
 if __name__ == '__main__':
-    app.run(debug=True, port=5002)
+    app.run(debug=True, port=5001)
