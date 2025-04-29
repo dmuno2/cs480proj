@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Client Login</title>
+</head>
+<body>
+    <h2>Login as Client</h2>
+    <form method="POST">
+        Email: <input type="email" name="email" required><br>
+        <input type="submit" value="Login">
+    </form>
+    <p>Don't have an account? <a href="{{ url_for('client_register') }}">Register here</a>.</p>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Search Cars</title>
+</head>
+<body>
+    <h2>Search for Available Cars</h2>
+    <form method="POST">
+        Car Brand: <input type="text" name="brand" required><br><br>
+        <input type="submit" value="Search">
+    </form>
+
+    {% if results %}
+        <h3>Results:</h3>
+        <table border="1">
+            <tr>
+                <th>Car ID</th>
+                <th>Brand</th>
+            </tr>
+            {% for row in results %}
+            <tr>
+                <td>{{ row[0] }}</td>
+                <td>{{ row[1] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
+    <p><a href="{{ url_for('client_dashboard') }}">Back to Client Dashboard</a></p>
+</body>
+</html>

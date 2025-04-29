@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Car</title>
+</head>
+<body>
+    <h2>Add a New Car</h2>
+    <form method="POST">
+        Carid: <input type="text" name="carid" required><br>
+        Brand: <input type="text" name="brand" required><br>
+        <input type="submit" value="Add Car">
+    </form>
+    <p><a href="{{ url_for('manager_dashboard') }}">Back to Manager Dashboard</a></p>
+</body>
+</html>
