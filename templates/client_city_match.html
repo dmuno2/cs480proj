@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Client City Match</title>
+    <style>
+        form, table {
+            width: 60%;
+            margin: 20px auto;
+            text-align: center;
+        }
+        input[type="text"] {
+            padding: 8px;
+            margin: 10px;
+            width: 40%;
+        }
+        input[type="submit"] {
+            padding: 8px 16px;
+            margin-top: 10px;
+        }
+        table {
+            border-collapse: collapse;
+            margin-top: 30px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #aaa;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        a {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h2 style="text-align:center;">Find Clients Living in City 1 Who Booked Drivers from City 2</h2>
+
+    <form method="POST">
+        <input type="text" name="city1" placeholder="Enter City C1" required>
+        <input type="text" name="city2" placeholder="Enter City C2" required><br>
+        <input type="submit" value="Search">
+    </form>
+
+    {% if results %}
+    <table>
+        <thead>
+            <tr>
+                <th>Client Name</th>
+                <th>Client Email</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in results %}
+            <tr>
+                <td>{{ r.name }}</td>
+                <td>{{ r.email }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% elif request.method == 'POST' %}
+        <p style="text-align:center;">No clients match the given cities.</p>
+    {% endif %}
+
+    <a href="{{ url_for('manager_dashboard') }}">Back to Dashboard</a>
+</body>
+</html>
