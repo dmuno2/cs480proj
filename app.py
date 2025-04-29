@@ -2,6 +2,8 @@ from flask import Flask, request, redirect, render_template, url_for, session, f
 from db_conn import get_db_connection
 import psycopg2
 import psycopg2.errors 
+from psycopg2.extras import RealDictCursor
+
 
 app = Flask(__name__)
 app.secret_key = "dev"  # Needed for login sessions
@@ -415,6 +417,22 @@ def add_car_driver():
 
     return render_template('add_car_driver.html')
 
+@app.route('/cars')
+def list_cars():
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor) 
+    # cursor = conn.cursor()
+    cursor.execute('''
+        SELECT car.carid AS car_id, model.modelid AS car_modelid, car.brand AS car_brand,
+               model.color, model.construction_year, model.transmission
+        FROM car
+        JOIN model ON car.carid = model.carid
+    ''')
+    # cars = [dict(row) for row in cursor.fetchall()]
+    cars = cursor.fetchall()
+    conn.close()
+    return render_template('list_cars.html', cars=cars)
+
 
 # ------------- Logout -------------
 @app.route('/logout')
@@ -424,4 +442,4 @@ def logout():
 
 # Run app
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=True, port=5002)
