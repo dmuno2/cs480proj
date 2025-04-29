@@ -315,6 +315,94 @@ def add_creditcard():
 
     return render_template('add_creditcard.html')
 
+# CLIENT - ADD ADDRESS
+@app.route('/client/add_address', methods=['GET', 'POST'])
+def client_add_address():
+    if 'client_email' not in session:
+        return redirect(url_for('client_login'))
+
+    if request.method == 'POST':
+        road_name = request.form['road_name']
+        number = request.form['number']
+        city = request.form['city']
+        email = session['client_email']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            cur.execute("""
+                INSERT INTO Address (road_name, number, city)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (road_name, number, city) DO NOTHING;
+            """, (road_name, number, city))
+
+            cur.execute("""
+                INSERT INTO LivesIn_Client (email, road_name, number, city)
+                VALUES (%s, %s, %s, %s);
+            """, (email, road_name, number, city))
+
+            conn.commit()
+            flash('Address added successfully!')
+        except Exception as e:
+            conn.rollback()
+            flash(f"Error adding address: {e}")
+        finally:
+            cur.close()
+            conn.close()
+
+        return redirect(url_for('client_dashboard'))
+
+    return render_template('client_address.html')
+
+# CLIENT - LEAVE REVIEW
+@app.route('/client/review', methods=['GET', 'POST'])
+def client_leave_review():
+    if 'client_email' not in session:
+        return redirect(url_for('client_login'))
+
+    if request.method == 'POST':
+        driver_name = request.form['driver_name']
+        message = request.form['message']
+        rating = int(request.form['rating'])
+        email = session['client_email']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            # Check if this client has rented from this driver
+            cur.execute("""
+                SELECT 1 FROM Rent WHERE client_email = %s AND driver_name = %s;
+            """, (email, driver_name))
+            if cur.fetchone() is None:
+                flash('You can only review drivers you rented from.')
+                return redirect(url_for('client_dashboard'))
+
+            # Insert into Review
+            import uuid
+            reviewid = str(uuid.uuid4())[:8]
+            cur.execute("""
+                INSERT INTO Review (reviewid, name, message, rating)
+                VALUES (%s, %s, %s, %s);
+            """, (reviewid, driver_name, message, rating))
+
+            # Link to client
+            cur.execute("""
+                INSERT INTO Written_By (email, reviewid)
+                VALUES (%s, %s);
+            """, (email, reviewid))
+
+            conn.commit()
+            flash('Review submitted successfully!')
+        except Exception as e:
+            conn.rollback()
+            flash(f"Error: {e}")
+        finally:
+            cur.close()
+            conn.close()
+
+        return redirect(url_for('client_dashboard'))
+
+    return render_template('client_review.html')
 
 
 # ------------- Driver -------------

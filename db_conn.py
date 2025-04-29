@@ -1,4 +1,4 @@
-# import psycopg2
+import psycopg2
 
 # database = '480 Group Project'
 # username = 'postgres'

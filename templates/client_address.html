@@ -1,0 +1,17 @@
+<!-- templates/client_address.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Address</title>
+</head>
+<body>
+    <h2>Add Address</h2>
+    <form method="POST">
+        Road Name: <input type="text" name="road_name" required><br>
+        Number: <input type="number" name="number" required><br>
+        City: <input type="text" name="city" required><br>
+        <input type="submit" value="Add Address">
+    </form>
+    <p><a href="{{ url_for('client_dashboard') }}">Back to Dashboard</a></p>
+</body>
+</html>
