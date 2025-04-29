@@ -178,6 +178,54 @@ def delete_driver():
 
     return render_template('delete_driver.html')
 
+@app.route('/manager/view_cars')
+def manager_view_cars():
+    if 'manager_ssn' not in session:
+        return redirect(url_for('manager_login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    query = '''
+        SELECT car.carid, car.brand,
+               model.modelid, model.color, model.construction_year, model.transmission,
+               COUNT(rent.rentid) AS rent_count
+        FROM car
+        JOIN model ON car.carid = model.carid
+        LEFT JOIN rent ON model.modelid = rent.modelid
+        GROUP BY car.carid, car.brand, model.modelid, model.color, model.construction_year, model.transmission
+        ORDER BY rent_count DESC
+    '''
+    cursor.execute(query)
+    cars = cursor.fetchall()
+    conn.close()
+    
+    return render_template('list_carsM.html', cars=cars) 
+
+@app.route('/manager/view_driver_stats')
+def manager_view_driver_stats():
+    if 'manager_ssn' not in session:
+        return redirect(url_for('manager_login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    query = '''
+        SELECT d.name AS driver_name,
+               COUNT(r.rentid) AS total_rents,
+               ROUND(AVG(rv.rating), 2) AS average_rating
+        FROM Driver d
+        LEFT JOIN Rent r ON d.name = r.driver_name
+        LEFT JOIN Review rv ON rv.name = d.name
+        GROUP BY d.name
+        ORDER BY total_rents DESC
+    '''
+    cursor.execute(query)
+    drivers = cursor.fetchall()
+    conn.close()
+
+    return render_template('manager_driver_stats.html', drivers=drivers)
+
 
 # ------------- Client -------------
 @app.route('/client/register', methods=['GET', 'POST'])
