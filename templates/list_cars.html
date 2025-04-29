@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>List of Cars</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 80%;
+            margin: 20px auto;
+        }
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        h2 {
+            text-align: center;
+        }
+        a {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            text-decoration: none;
+            color: #007BFF;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h2>All Cars and Models</h2>
+    
+    {% if cars %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Car ID</th>
+                    <th>Model ID</th>
+                    <th>Car Brand</th>
+                    <th>Color</th>
+                    <th>Construction Year</th>
+                    <th>Transmission</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for car in cars %}
+                <tr>
+                    <td>{{ car.car_id }}</td>
+                    <td>{{ car.car_modelid }}</td>
+                    <td>{{ car.car_brand }}</td>
+                    <td>{{ car.color }}</td>
+                    <td>{{ car.construction_year }}</td>
+                    <td>{{ car.transmission }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="text-align: center;">No cars found in the system.</p>
+    {% endif %}
+    
+    <a href="{{ url_for('driver_dashboard') }}">Back to Dashboard</a>
+</body>
+</html>
