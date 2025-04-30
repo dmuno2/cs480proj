@@ -290,6 +290,42 @@ def top_clients():
 
     return render_template('top_clients.html', results=results)
 
+@app.route('/manager/problem_drivers')
+def problem_drivers():
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute('''
+        SELECT d.name,
+               (
+                   SELECT ROUND(AVG(rating), 2)
+                   FROM Review
+                   WHERE Review.name = d.name
+               ) AS avg_rating
+        FROM Driver d
+        WHERE d.city = 'Chicago'
+        AND (
+            SELECT AVG(rating)
+            FROM Review
+            WHERE Review.name = d.name
+        ) < 2.5
+        AND (
+            SELECT COUNT(DISTINCT r.client_email)
+            FROM Rent r
+            WHERE r.driver_name = d.name
+              AND r.client_email IN (
+                  SELECT DISTINCT lc.email
+                  FROM LivesIn_Client lc
+                  WHERE lc.city = 'Chicago'
+              )
+        ) >= 2
+    ''')
+
+    drivers = cur.fetchall()
+    conn.close()
+
+    return render_template('problem_drivers.html', drivers=drivers)
+
 @app.route('/manager/brand_report')
 def manager_brand_report():
     if 'manager_ssn' not in session:
@@ -328,7 +364,6 @@ def manager_brand_report():
     conn.close()
 
     return render_template('brand_report.html', report=report)
-
 
 # ------------- Client -------------
 @app.route('/client/register', methods=['GET', 'POST'])
