@@ -372,15 +372,57 @@ def client_register():
         name = request.form['name']
         email = request.form['email']
 
+        # Home address
+        home_road = request.form['home_road_name']
+        home_number = request.form['home_number']
+        home_city = request.form['home_city']
+
+        # Credit card & billing address
+        card_num = request.form['card_num']
+        bill_road = request.form['bill_road_name']
+        bill_number = request.form['bill_number']
+        bill_city = request.form['bill_city']
+
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("INSERT INTO Client (name, email) VALUES (%s, %s);", (name, email))
-        conn.commit()
-        cur.close()
-        conn.close()
+        try:
+            # Insert both addresses if not already present
+            cur.execute("""
+                INSERT INTO Address (road_name, number, city)
+                VALUES (%s, %s, %s)
+                ON CONFLICT DO NOTHING;
+            """, (home_road, home_number, home_city))
 
-        flash('Registration successful. Please login.')
-        return redirect(url_for('client_login'))
+            cur.execute("""
+                INSERT INTO Address (road_name, number, city)
+                VALUES (%s, %s, %s)
+                ON CONFLICT DO NOTHING;
+            """, (bill_road, bill_number, bill_city))
+
+            # Insert client
+            cur.execute("INSERT INTO Client (name, email) VALUES (%s, %s);", (name, email))
+
+            # Insert livesin relationship (if exists)
+            cur.execute("""
+                INSERT INTO livesin_client (email, road_name, number, city)
+                VALUES (%s, %s, %s, %s);
+            """, (email, home_road, home_number, home_city))
+
+            # Insert credit card
+            cur.execute("""
+                INSERT INTO CreditCard (card_num, email, road_name, number, city)
+                VALUES (%s, %s, %s, %s, %s);
+            """, (card_num, email, bill_road, bill_number, bill_city))
+
+            conn.commit()
+            flash("Registration complete! Please login.")
+            return redirect(url_for('client_login'))
+        except Exception as e:
+            conn.rollback()
+            flash(f"Error: {e}")
+        finally:
+            cur.close()
+            conn.close()
 
     return render_template('client_register.html')
 
