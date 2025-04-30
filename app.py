@@ -212,12 +212,19 @@ def manager_view_driver_stats():
 
     query = '''
         SELECT d.name AS driver_name,
-               COUNT(r.rentid) AS total_rents,
-               ROUND(AVG(rv.rating), 2) AS average_rating
+               COALESCE(rent_counts.total_rents, 0) AS total_rents,
+               ROUND(avg_ratings.average_rating, 2) AS average_rating
         FROM Driver d
-        LEFT JOIN Rent r ON d.name = r.driver_name
-        LEFT JOIN Review rv ON rv.name = d.name
-        GROUP BY d.name
+        LEFT JOIN (
+            SELECT driver_name, COUNT(*) AS total_rents
+            FROM Rent
+            GROUP BY driver_name
+        ) rent_counts ON d.name = rent_counts.driver_name
+        LEFT JOIN (
+            SELECT name AS driver_name, AVG(rating) AS average_rating
+            FROM Review
+            GROUP BY name
+        ) avg_ratings ON d.name = avg_ratings.driver_name
         ORDER BY total_rents DESC
     '''
     cursor.execute(query)
@@ -319,8 +326,44 @@ def problem_drivers():
 
     return render_template('problem_drivers.html', drivers=drivers)
 
+@app.route('/manager/brand_report')
+def manager_brand_report():
+    if 'manager_ssn' not in session:
+        return redirect(url_for('manager_login'))
 
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
 
+    query = '''
+        SELECT 
+            c.brand,
+            ROUND(AVG(avg_rating.avg_rating), 2) AS average_rating,
+            COALESCE(SUM(rent_counts.total_rents), 0) AS total_rents
+        FROM car c
+        JOIN model m ON c.carid = m.carid
+
+        LEFT JOIN (
+            SELECT cd.modelid, AVG(rv.rating) AS avg_rating
+            FROM canDrive cd
+            JOIN review rv ON cd.driver_name = rv.name
+            GROUP BY cd.modelid
+        ) avg_rating ON m.modelid = avg_rating.modelid
+
+        LEFT JOIN (
+            SELECT modelid, COUNT(*) AS total_rents
+            FROM rent
+            GROUP BY modelid
+        ) rent_counts ON m.modelid = rent_counts.modelid
+
+        GROUP BY c.brand
+        ORDER BY total_rents DESC
+    '''
+
+    cur.execute(query)
+    report = cur.fetchall()
+    conn.close()
+
+    return render_template('brand_report.html', report=report)
 
 # ------------- Client -------------
 @app.route('/client/register', methods=['GET', 'POST'])
@@ -499,6 +542,34 @@ def client_add_address():
 
     return render_template('client_address.html')
 
+@app.route('/client/available_models', methods=['GET', 'POST'])
+def available_models():
+    if 'client_email' not in session:
+        return redirect(url_for('client_login'))
+
+    available_models = []
+    if request.method == 'POST':
+        rent_date = request.form['rent_date']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            cur.execute("""
+                SELECT DISTINCT m.modelid, m.color, m.transmission, m.construction_year
+                FROM model m
+                JOIN candrive cd ON m.modelid = cd.modelid
+                LEFT JOIN rent r_model ON m.modelid = r_model.modelid AND r_model.rent_date = %s
+                LEFT JOIN rent r_driver ON cd.driver_name = r_driver.driver_name AND r_driver.rent_date = %s
+                WHERE r_model.rentid IS NULL AND r_driver.rentid IS NULL;
+            """, (rent_date, rent_date))
+
+            available_models = cur.fetchall()
+        finally:
+            cur.close()
+            conn.close()
+
+    return render_template('available_models.html', available_models=available_models)
+
 # CLIENT - LEAVE REVIEW
 @app.route('/client/review', methods=['GET', 'POST'])
 def client_leave_review():
@@ -548,6 +619,55 @@ def client_leave_review():
         return redirect(url_for('client_dashboard'))
 
     return render_template('client_review.html')
+
+@app.route('/client/book_best_driver', methods=['GET', 'POST'])
+def book_best_driver():
+    if 'client_email' not in session:
+        return redirect(url_for('client_login'))
+
+    best_driver = None
+
+    if request.method == 'POST':
+        rentid = request.form['rentid']
+        rent_date = request.form['rent_date']
+        modelid = request.form['modelid']
+        client_email = session['client_email']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            # SQL to find best available driver
+            cur.execute("""
+                SELECT d.driver_name
+                FROM CanDrive d
+                LEFT JOIN Rent r ON d.driver_name = r.driver_name AND r.rent_date = %s
+                LEFT JOIN Review rv ON d.driver_name = rv.name
+                WHERE d.modelid = %s AND r.driver_name IS NULL
+                GROUP BY d.driver_name
+                ORDER BY AVG(rv.rating) DESC NULLS LAST
+                LIMIT 1;
+            """, (rent_date, modelid))
+
+            best_driver_row = cur.fetchone()
+            if not best_driver_row:
+                flash("No available driver found for this model on that date.")
+            else:
+                best_driver = best_driver_row[0]
+                cur.execute("""
+                    INSERT INTO Rent (rentid, rent_date, client_email, driver_name, modelid)
+                    VALUES (%s, %s, %s, %s, %s);
+                """, (rentid, rent_date, client_email, best_driver, modelid))
+                conn.commit()
+                flash("Rent successfully booked!")
+        except Exception as e:
+            conn.rollback()
+            flash(f"Booking error: {e}")
+        finally:
+            cur.close()
+            conn.close()
+
+    return render_template('book_best_driver.html', best_driver=best_driver)
+
 
 
 #client check past bookings
@@ -699,4 +819,4 @@ def logout():
 
 # Run app
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5001)

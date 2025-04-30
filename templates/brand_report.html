@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Car Brand Report</title>
+    <style>
+        table {
+            width: 80%;
+            margin: 30px auto;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+        th {
+            background-color: #eee;
+        }
+        h2, a {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h2>Car Brand Report</h2>
+
+    {% if report %}
+    <table>
+        <thead>
+            <tr>
+                <th>Car Brand</th>
+                <th>Average Driver Rating</th>
+                <th>Total Rents for Brand</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in report %}
+            <tr>
+                <td>{{ row.brand }}</td>
+                <td>{{ row.average_rating if row.average_rating is not none else 'N/A' }}</td>
+                <td>{{ row.total_rents }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p style="text-align:center;">No brand data available.</p>
+    {% endif %}
+
+    <a href="{{ url_for('manager_dashboard') }}">Back to Dashboard</a>
+</body>
+</html>
