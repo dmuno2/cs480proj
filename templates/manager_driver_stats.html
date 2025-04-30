@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manager View: Driver Stats</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 80%;
+            margin: 20px auto;
+        }
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        h2, a {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h2>Driver Performance Overview</h2>
+    {% if drivers %}
+    <table>
+        <thead>
+            <tr>
+                <th>Driver Name</th>
+                <th>Total Rents</th>
+                <th>Average Rating</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for driver in drivers %}
+            <tr>
+                <td>{{ driver.driver_name }}</td>
+                <td>{{ driver.total_rents }}</td>
+                <td>{{ driver.average_rating if driver.average_rating is not none else 'N/A' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p style="text-align:center;">No driver data available.</p>
+    {% endif %}
+    <a href="{{ url_for('manager_dashboard') }}">Back to Dashboard</a>
+</body>
+</html>

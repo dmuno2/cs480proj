@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manager View: All Cars</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 90%;
+            margin: 20px auto;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ccc;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+        h2, a {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h2>All Cars and Rent Counts</h2>
+    {% if cars %}
+    <table>
+        <thead>
+            <tr>
+                <th>Car ID</th>
+                <th>Brand</th>
+                <th>Model ID</th>
+                <th>Color</th>
+                <th>Year</th>
+                <th>Transmission</th>
+                <th># Times Rented</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for car in cars %}
+            <tr>
+                <td>{{ car.carid }}</td>
+                <td>{{ car.brand }}</td>
+                <td>{{ car.modelid }}</td>
+                <td>{{ car.color }}</td>
+                <td>{{ car.construction_year }}</td>
+                <td>{{ car.transmission }}</td>
+                <td>{{ car.rent_count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p style="text-align:center;">No cars found.</p>
+    {% endif %}
+    <a href="{{ url_for('manager_dashboard') }}">Back to Dashboard</a>
+</body>
+</html>

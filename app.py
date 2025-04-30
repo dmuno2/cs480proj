@@ -178,6 +178,157 @@ def delete_driver():
 
     return render_template('delete_driver.html')
 
+@app.route('/manager/view_cars')
+def manager_view_cars():
+    if 'manager_ssn' not in session:
+        return redirect(url_for('manager_login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    query = '''
+        SELECT car.carid, car.brand,
+               model.modelid, model.color, model.construction_year, model.transmission,
+               COUNT(rent.rentid) AS rent_count
+        FROM car
+        JOIN model ON car.carid = model.carid
+        LEFT JOIN rent ON model.modelid = rent.modelid
+        GROUP BY car.carid, car.brand, model.modelid, model.color, model.construction_year, model.transmission
+        ORDER BY rent_count DESC
+    '''
+    cursor.execute(query)
+    cars = cursor.fetchall()
+    conn.close()
+    
+    return render_template('list_carsM.html', cars=cars) 
+
+@app.route('/manager/view_driver_stats')
+def manager_view_driver_stats():
+    if 'manager_ssn' not in session:
+        return redirect(url_for('manager_login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    query = '''
+        SELECT d.name AS driver_name,
+               COALESCE(rent_counts.total_rents, 0) AS total_rents,
+               ROUND(avg_ratings.average_rating, 2) AS average_rating
+        FROM Driver d
+        LEFT JOIN (
+            SELECT driver_name, COUNT(*) AS total_rents
+            FROM Rent
+            GROUP BY driver_name
+        ) rent_counts ON d.name = rent_counts.driver_name
+        LEFT JOIN (
+            SELECT name AS driver_name, AVG(rating) AS average_rating
+            FROM Review
+            GROUP BY name
+        ) avg_ratings ON d.name = avg_ratings.driver_name
+        ORDER BY total_rents DESC
+    '''
+    cursor.execute(query)
+    drivers = cursor.fetchall()
+    conn.close()
+
+    return render_template('manager_driver_stats.html', drivers=drivers)
+
+@app.route('/manager/client_city_match', methods=['GET', 'POST'])
+def client_city_match():
+    results = []
+    if 'manager_ssn' not in session:
+        return redirect(url_for('manager_login'))
+
+    if request.method == 'POST':
+        city1 = request.form['city1']
+        city2 = request.form['city2']
+
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        query = '''
+            SELECT DISTINCT c.name, c.email
+            FROM Client c
+            JOIN LivesIn_Client lc ON c.email = lc.email
+            JOIN Address ca ON lc.road_name = ca.road_name AND lc.number = ca.number AND lc.city = ca.city
+            JOIN Rent r ON c.email = r.client_email
+            JOIN Driver d ON r.driver_name = d.name
+            JOIN Address da ON d.road_name = da.road_name AND d.number = da.number AND d.city = da.city
+            WHERE ca.city = %s AND da.city = %s
+        '''
+
+        cur.execute(query, (city1, city2))
+        results = cur.fetchall()
+        conn.close()
+
+    return render_template('client_city_match.html', results=results)
+
+@app.route('/manager/top_clients', methods=['GET', 'POST'])
+def top_clients():
+    results = []
+
+    if request.method == 'POST':
+        k = request.form.get('k')
+
+        if k and k.isdigit() and int(k) > 0:
+            k = int(k)
+
+            conn = get_db_connection()
+            cur = conn.cursor()
+
+            cur.execute('''
+                SELECT Client.name, Client.email, COUNT(*) AS rent_count
+                FROM Rent
+                JOIN Client ON Rent.client_email = Client.email
+                GROUP BY Client.name, Client.email
+                ORDER BY rent_count DESC
+                LIMIT %s
+            ''', (k,))
+
+            results = cur.fetchall()
+            conn.close()
+
+    return render_template('top_clients.html', results=results)
+
+@app.route('/manager/brand_report')
+def manager_brand_report():
+    if 'manager_ssn' not in session:
+        return redirect(url_for('manager_login'))
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    query = '''
+        SELECT 
+            c.brand,
+            ROUND(AVG(avg_rating.avg_rating), 2) AS average_rating,
+            COALESCE(SUM(rent_counts.total_rents), 0) AS total_rents
+        FROM car c
+        JOIN model m ON c.carid = m.carid
+
+        LEFT JOIN (
+            SELECT cd.modelid, AVG(rv.rating) AS avg_rating
+            FROM canDrive cd
+            JOIN review rv ON cd.driver_name = rv.name
+            GROUP BY cd.modelid
+        ) avg_rating ON m.modelid = avg_rating.modelid
+
+        LEFT JOIN (
+            SELECT modelid, COUNT(*) AS total_rents
+            FROM rent
+            GROUP BY modelid
+        ) rent_counts ON m.modelid = rent_counts.modelid
+
+        GROUP BY c.brand
+        ORDER BY total_rents DESC
+    '''
+
+    cur.execute(query)
+    report = cur.fetchall()
+    conn.close()
+
+    return render_template('brand_report.html', report=report)
+
 
 # ------------- Client -------------
 @app.route('/client/register', methods=['GET', 'POST'])
@@ -484,6 +635,32 @@ def book_best_driver():
 
 
 
+#client check past bookings
+@app.route('/client/rents', methods=['GET'])
+def client_rents():
+    if 'client_email' not in session:
+        return redirect(url_for('client_login'))  # Ensure client is logged in
+
+    email = session['client_email']
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # Join Rent -> Model -> Car to get brand, color, construction_year
+    cur.execute('''
+        SELECT Rent.rentid, Rent.rent_date, Car.brand, Model.construction_year, Model.color, Rent.driver_name
+        FROM Rent
+        JOIN Model ON Rent.modelid = Model.modelid
+        JOIN Car ON Model.carid = Car.carid
+        WHERE Rent.client_email = %s
+        ORDER BY Rent.rent_date ASC
+    ''', (email,))
+
+    rents = cur.fetchall()
+    conn.close()
+
+    return render_template('client_rents.html', rents=rents)
+
 # ------------- Driver -------------
 @app.route('/driver/login', methods=['GET', 'POST'])
 def driver_login():
@@ -607,4 +784,4 @@ def logout():
 
 # Run app
 if __name__ == '__main__':
-    app.run(debug=True, port=5002)
+    app.run(debug=True, port=5001)
