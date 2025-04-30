@@ -477,22 +477,43 @@ def book_rent():
     if 'client_email' not in session:
         return redirect(url_for('client_login'))
 
+    assigned_driver = None
+
     if request.method == 'POST':
         rentid = request.form['rentid']
         rent_date = request.form['rent_date']
-        driver_name = request.form['driver_name']
         modelid = request.form['modelid']
         client_email = session['client_email']
 
         conn = get_db_connection()
         cur = conn.cursor()
+
         try:
-            cur.execute(
-                "INSERT INTO Rent (rentid, rent_date, client_email, driver_name, modelid) VALUES (%s, %s, %s, %s, %s);",
-                (rentid, rent_date, client_email, driver_name, modelid)
-            )
+            # Find any driver who can drive this model and is free that day
+            cur.execute("""
+                SELECT d.name
+                FROM Driver d
+                JOIN CanDrive cd ON d.name = cd.driver_name
+                WHERE cd.modelid = %s
+                  AND d.name NOT IN (
+                      SELECT driver_name FROM Rent WHERE rent_date = %s
+                  )
+                LIMIT 1;
+            """, (modelid, rent_date))
+            result = cur.fetchone()
+
+            if result is None:
+                flash('No available driver for the selected model on this date.')
+                return redirect(url_for('book_rent'))
+
+            assigned_driver = result[0]
+
+            cur.execute("""
+                INSERT INTO Rent (rentid, rent_date, client_email, driver_name, modelid)
+                VALUES (%s, %s, %s, %s, %s);
+            """, (rentid, rent_date, client_email, assigned_driver, modelid))
+
             conn.commit()
-            flash('Rent booked successfully!')
         except Exception as e:
             conn.rollback()
             flash(f"Error booking rent: {e}")
@@ -500,9 +521,17 @@ def book_rent():
             cur.close()
             conn.close()
 
-        return redirect(url_for('client_dashboard'))
+    # Populate model list
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT modelid FROM Model;")
+    models = cur.fetchall()
+    cur.close()
+    conn.close()
 
-    return render_template('book.html')
+    return render_template('book.html', models=models, assigned_driver=assigned_driver)
+
+
 
 @app.route('/client/add_creditcard', methods=['GET', 'POST'])
 def add_creditcard():
