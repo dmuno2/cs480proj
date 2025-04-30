@@ -283,6 +283,44 @@ def top_clients():
 
     return render_template('top_clients.html', results=results)
 
+@app.route('/manager/problem_drivers')
+def problem_drivers():
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute('''
+        SELECT d.name,
+               (
+                   SELECT ROUND(AVG(rating), 2)
+                   FROM Review
+                   WHERE Review.name = d.name
+               ) AS avg_rating
+        FROM Driver d
+        WHERE d.city = 'Chicago'
+        AND (
+            SELECT AVG(rating)
+            FROM Review
+            WHERE Review.name = d.name
+        ) < 2.5
+        AND (
+            SELECT COUNT(DISTINCT r.client_email)
+            FROM Rent r
+            WHERE r.driver_name = d.name
+              AND r.client_email IN (
+                  SELECT DISTINCT lc.email
+                  FROM LivesIn_Client lc
+                  WHERE lc.city = 'Chicago'
+              )
+        ) >= 2
+    ''')
+
+    drivers = cur.fetchall()
+    conn.close()
+
+    return render_template('problem_drivers.html', drivers=drivers)
+
+
+
 
 # ------------- Client -------------
 @app.route('/client/register', methods=['GET', 'POST'])
@@ -661,4 +699,4 @@ def logout():
 
 # Run app
 if __name__ == '__main__':
-    app.run(debug=True, port=5003)
+    app.run(debug=True, port=5000)
