@@ -1,0 +1,22 @@
+<!-- templates/book_best_driver.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Book Rent with Best Rated Driver</title>
+</head>
+<body>
+    <h2>Book a Rent with the Best Rated Driver</h2>
+    <form method="POST">
+        Rent ID: <input type="text" name="rentid" required><br>
+        Rent Date: <input type="date" name="rent_date" required><br>
+        Model ID: <input type="text" name="modelid" required><br>
+        <input type="submit" value="Book Rent">
+    </form>
+
+    {% if best_driver %}
+        <p><strong>The best current driver for this model is:</strong> {{ best_driver }}</p>
+    {% endif %}
+
+    <p><a href="{{ url_for('client_dashboard') }}">Back to Dashboard</a></p>
+</body>
+</html>

@@ -507,6 +507,34 @@ def client_add_address():
 
     return render_template('client_address.html')
 
+@app.route('/client/available_models', methods=['GET', 'POST'])
+def available_models():
+    if 'client_email' not in session:
+        return redirect(url_for('client_login'))
+
+    available_models = []
+    if request.method == 'POST':
+        rent_date = request.form['rent_date']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            cur.execute("""
+                SELECT DISTINCT m.modelid, m.color, m.transmission, m.construction_year
+                FROM model m
+                JOIN candrive cd ON m.modelid = cd.modelid
+                LEFT JOIN rent r_model ON m.modelid = r_model.modelid AND r_model.rent_date = %s
+                LEFT JOIN rent r_driver ON cd.driver_name = r_driver.driver_name AND r_driver.rent_date = %s
+                WHERE r_model.rentid IS NULL AND r_driver.rentid IS NULL;
+            """, (rent_date, rent_date))
+
+            available_models = cur.fetchall()
+        finally:
+            cur.close()
+            conn.close()
+
+    return render_template('available_models.html', available_models=available_models)
+
 # CLIENT - LEAVE REVIEW
 @app.route('/client/review', methods=['GET', 'POST'])
 def client_leave_review():
@@ -556,6 +584,55 @@ def client_leave_review():
         return redirect(url_for('client_dashboard'))
 
     return render_template('client_review.html')
+
+@app.route('/client/book_best_driver', methods=['GET', 'POST'])
+def book_best_driver():
+    if 'client_email' not in session:
+        return redirect(url_for('client_login'))
+
+    best_driver = None
+
+    if request.method == 'POST':
+        rentid = request.form['rentid']
+        rent_date = request.form['rent_date']
+        modelid = request.form['modelid']
+        client_email = session['client_email']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            # SQL to find best available driver
+            cur.execute("""
+                SELECT d.driver_name
+                FROM CanDrive d
+                LEFT JOIN Rent r ON d.driver_name = r.driver_name AND r.rent_date = %s
+                LEFT JOIN Review rv ON d.driver_name = rv.name
+                WHERE d.modelid = %s AND r.driver_name IS NULL
+                GROUP BY d.driver_name
+                ORDER BY AVG(rv.rating) DESC NULLS LAST
+                LIMIT 1;
+            """, (rent_date, modelid))
+
+            best_driver_row = cur.fetchone()
+            if not best_driver_row:
+                flash("No available driver found for this model on that date.")
+            else:
+                best_driver = best_driver_row[0]
+                cur.execute("""
+                    INSERT INTO Rent (rentid, rent_date, client_email, driver_name, modelid)
+                    VALUES (%s, %s, %s, %s, %s);
+                """, (rentid, rent_date, client_email, best_driver, modelid))
+                conn.commit()
+                flash("Rent successfully booked!")
+        except Exception as e:
+            conn.rollback()
+            flash(f"Booking error: {e}")
+        finally:
+            cur.close()
+            conn.close()
+
+    return render_template('book_best_driver.html', best_driver=best_driver)
+
 
 
 #client check past bookings
