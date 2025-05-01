@@ -648,21 +648,41 @@ def client_leave_review():
         return redirect(url_for('client_login'))
 
     if request.method == 'POST':
-        driver_name = request.form['driver_name']
-        message = request.form['message']
-        rating = int(request.form['rating'])
+        driver_name = request.form.get('driver_name', '').strip()
+        message = request.form.get('message', '').strip()
+        rating_raw = request.form.get('rating', '').strip()
         email = session['client_email']
+
+        # Field validation
+        if not driver_name or not message or not rating_raw:
+            flash("All fields are required.")
+            return redirect(url_for('client_leave_review'))
+
+        try:
+            rating = int(rating_raw)
+            if rating < 0 or rating > 5:
+                flash("Rating must be between 0 and 5.")
+                return redirect(url_for('client_leave_review'))
+        except ValueError:
+            flash("Rating must be a number.")
+            return redirect(url_for('client_leave_review'))
 
         conn = get_db_connection()
         cur = conn.cursor()
         try:
+            # Check if driver exists
+            cur.execute("SELECT 1 FROM Driver WHERE name = %s", (driver_name,))
+            if cur.fetchone() is None:
+                flash("The specified driver does not exist.")
+                return redirect(url_for('client_leave_review'))
+
             # Check if this client has rented from this driver
             cur.execute("""
                 SELECT 1 FROM Rent WHERE client_email = %s AND driver_name = %s;
             """, (email, driver_name))
             if cur.fetchone() is None:
-                flash('You can only review drivers you rented from.')
-                return redirect(url_for('client_dashboard'))
+                flash('You can only review drivers you have rented from.')
+                return redirect(url_for('client_leave_review'))
 
             # Insert into Review
             import uuid
@@ -682,7 +702,7 @@ def client_leave_review():
             flash('Review submitted successfully!')
         except Exception as e:
             conn.rollback()
-            flash(f"Error: {e}")
+            flash(f"Error submitting review: {e}")
         finally:
             cur.close()
             conn.close()
@@ -752,9 +772,8 @@ def client_rents():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Join Rent -> Model -> Car to get brand, color, construction_year
     cur.execute('''
-        SELECT Rent.rentid, Rent.rent_date, Car.brand, Model.construction_year, Model.color, Rent.driver_name
+        SELECT Rent.rentid, Rent.rent_date, Rent.modelid, Car.brand, Model.construction_year, Model.color, Rent.driver_name
         FROM Rent
         JOIN Model ON Rent.modelid = Model.modelid
         JOIN Car ON Model.carid = Car.carid
@@ -890,4 +909,4 @@ def logout():
 
 # Run app
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=True, port=5004)
