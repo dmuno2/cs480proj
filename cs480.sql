@@ -1,10 +1,10 @@
--- CS80 Project - Phase 2: Ultimate Final Corrected Schema
--- Schema uses PostgreSQL dialect
+-- CS80 Project 
 
 -- CLIENT
 CREATE TABLE Client (
     email TEXT PRIMARY KEY,
     name TEXT
+    -- Primary Key(email)
 );
 
 -- ADDRESS
@@ -31,6 +31,7 @@ CREATE TABLE Driver (
     road_name TEXT,
     number INT,
     city TEXT,
+    -- Primary Key(name)
     FOREIGN KEY (road_name, number, city) REFERENCES Address(road_name, number, city)
 );
 
@@ -41,6 +42,8 @@ CREATE TABLE CreditCard (
     road_name TEXT,
     number INT,
     city TEXT,
+    -- Primary Key(card_num)
+    -- FOREIGN KEY (email) REFERENCES Client(email),
     FOREIGN KEY (road_name, number, city) REFERENCES Address(road_name, number, city)
 );
 
@@ -48,6 +51,7 @@ CREATE TABLE CreditCard (
 CREATE TABLE Car (
     carid TEXT PRIMARY KEY,
     brand TEXT
+    -- Primary Key(carid)
 );
 
 -- MODEL
@@ -57,6 +61,7 @@ CREATE TABLE Model (
     color TEXT,
     construction_year INT,
     transmission TEXT
+    -- primary key(modelid, carid)
 );
 
 -- DRIVER - CAN DRIVE MODEL
@@ -75,6 +80,10 @@ CREATE TABLE Rent (
     client_email TEXT REFERENCES Client(email),
     driver_name TEXT REFERENCES Driver(name),
     modelid TEXT REFERENCES Model(modelid)
+    -- Primary Key(rentid)
+    -- FOREIGN KEY (client_email) REFERENCES Client(email),
+    -- FOREIGN KEY (driver_name) REFERENCES Driver(name),
+    -- FOREIGN KEY (modelid) REFERENCES Model(modelid)
 );
 
 -- REVIEW
@@ -83,6 +92,9 @@ CREATE TABLE Review (
     name TEXT REFERENCES Driver(name),
     message TEXT,
     rating INT CHECK (rating >= 0 AND rating <= 5)
+    -- Primary Key(reviewid)
+    -- FOREIGN KEY (name) REFERENCES Driver(name)
+    -- FOREIGN KEY (message) REFERENCES Review(message)
 );
 
 -- CLIENT - WRITTEN REVIEW
@@ -97,4 +109,5 @@ CREATE TABLE Manager (
     ssn INT PRIMARY KEY,
     name TEXT,
     email TEXT
+    --primary key(ssn)
 );

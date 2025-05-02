@@ -4,7 +4,6 @@ import psycopg2
 import psycopg2.errors 
 from psycopg2.extras import RealDictCursor
 
-
 app = Flask(__name__)
 app.secret_key = "dev"  # Needed for login sessions
 
@@ -13,7 +12,7 @@ app.secret_key = "dev"  # Needed for login sessions
 def index():
     return render_template('index.html')
 
-# ------------- Manager -------------
+####################### Manager ###################
 @app.route('/manager/login', methods=['GET', 'POST'])
 def manager_login():
     if request.method == 'POST':
@@ -137,7 +136,6 @@ def add_model():
         conn = get_db_connection()
         cur = conn.cursor()
         try:
-
             # Now, insert the driver
             cur.execute(
                 "INSERT INTO model (modelid, carid, color, construction_year, transmission) VALUES (%s, %s, %s, %s, %s);",
@@ -269,7 +267,6 @@ def top_clients():
 
     if request.method == 'POST':
         k = request.form.get('k')
-
         if k and k.isdigit() and int(k) > 0:
             k = int(k)
 
@@ -365,7 +362,7 @@ def manager_brand_report():
 
     return render_template('brand_report.html', report=report)
 
-# ------------- Client -------------
+################### Client #####################
 @app.route('/client/register', methods=['GET', 'POST'])
 def client_register():
     if request.method == 'POST':
@@ -386,7 +383,7 @@ def client_register():
         conn = get_db_connection()
         cur = conn.cursor()
         try:
-            # Insert both addresses if not already present
+            # Insert both addresses if not already there
             cur.execute("""
                 INSERT INTO Address (road_name, number, city)
                 VALUES (%s, %s, %s)
@@ -402,7 +399,7 @@ def client_register():
             # Insert client
             cur.execute("INSERT INTO Client (name, email) VALUES (%s, %s);", (name, email))
 
-            # Insert livesin relationship (if exists)
+            # Insert livesin relationship (if it exists)
             cur.execute("""
                 INSERT INTO livesin_client (email, road_name, number, city)
                 VALUES (%s, %s, %s, %s);
@@ -453,7 +450,6 @@ def client_dashboard():
     return render_template('client_dashboard.html')
 
 #lets clients search by car brand
-#search is case-insensitive because of ILIKE.
 @app.route('/client/search', methods=['GET', 'POST'])
 def search():
     results = []
@@ -489,7 +485,7 @@ def book_rent():
         cur = conn.cursor()
 
         try:
-            # Find any driver who can drive this model and is free that day
+            # Find available driver who can drive the model and is not booked that day
             cur.execute("""
                 SELECT d.name
                 FROM Driver d
@@ -514,6 +510,8 @@ def book_rent():
             """, (rentid, rent_date, client_email, assigned_driver, modelid))
 
             conn.commit()
+            flash(f'Driver {assigned_driver} has been assigned to your booking.')
+
         except Exception as e:
             conn.rollback()
             flash(f"Error booking rent: {e}")
@@ -521,7 +519,7 @@ def book_rent():
             cur.close()
             conn.close()
 
-    # Populate model list
+    # Populate model list for dropdown
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("SELECT modelid FROM Model;")
@@ -530,8 +528,6 @@ def book_rent():
     conn.close()
 
     return render_template('book.html', models=models, assigned_driver=assigned_driver)
-
-
 
 @app.route('/client/add_creditcard', methods=['GET', 'POST'])
 def add_creditcard():
@@ -727,7 +723,6 @@ def book_best_driver():
         conn = get_db_connection()
         cur = conn.cursor()
         try:
-            # SQL to find best available driver
             cur.execute("""
                 SELECT d.driver_name
                 FROM CanDrive d
@@ -759,8 +754,6 @@ def book_best_driver():
 
     return render_template('book_best_driver.html', best_driver=best_driver)
 
-
-
 #client check past bookings
 @app.route('/client/rents', methods=['GET'])
 def client_rents():
@@ -786,7 +779,7 @@ def client_rents():
 
     return render_template('client_rents.html', rents=rents)
 
-# ------------- Driver -------------
+##################### Driver ############################
 @app.route('/driver/login', methods=['GET', 'POST'])
 def driver_login():
     if request.method == 'POST':
@@ -901,7 +894,7 @@ def list_cars():
     return render_template('list_cars.html', cars=cars)
 
 
-# ------------- Logout -------------
+######################## Logout #######################
 @app.route('/logout')
 def logout():
     session.clear()

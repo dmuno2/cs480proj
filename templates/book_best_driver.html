@@ -1,4 +1,3 @@
-<!-- templates/book_best_driver.html -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -6,6 +5,16 @@
 </head>
 <body>
     <h2>Book a Rent with the Best Rated Driver</h2>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul style="color: red;">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
     <form method="POST">
         Rent ID: <input type="text" name="rentid" required><br>
         Rent Date: <input type="date" name="rent_date" required><br>
