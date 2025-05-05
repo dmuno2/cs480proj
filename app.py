@@ -894,6 +894,28 @@ def list_cars():
     return render_template('list_cars.html', cars=cars)
 
 
+@app.route('/driver/reviews')
+def view_driver_reviews():
+    if 'driver_name' not in session:
+        return redirect(url_for('driver_login'))
+
+    driver_name = session['driver_name']
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT r.reviewid, r.name, r.message, r.rating
+        FROM Review r
+        WHERE r.name = %s;
+    """, (driver_name,))
+    reviews = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return render_template('driver_reviews.html', reviews=reviews)
+
+
+
 ######################## Logout #######################
 @app.route('/logout')
 def logout():

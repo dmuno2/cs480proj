@@ -1,0 +1,87 @@
+<!--  
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Reviews</title>
+</head>
+<body>
+    <h2>My Past Reviews</h2>
+
+    {% if reviews %}
+        <ul>
+        {% for review in reviews %}
+            <li><strong>Rent ID:</strong> {{ review[0] }} |
+                <strong>Name:</strong> {{ review[1] }} |
+                <strong>Comment:</strong> {{ review[2] }}</li>
+                <strong>Rating:</strong> {{ review[3] }} |
+                
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>You have no reviews yet.</p>
+    {% endif %}
+
+    <p><a href="{{ url_for('driver_dashboard') }}">Back to Dashboard</a></p>
+</body>
+</html>
+
+ -->
+ <!DOCTYPE html>
+ <html lang="en">
+ <head>
+     <meta charset="UTF-8">
+     <title>My Reviews</title>
+     <style>
+         body {
+             font-family: Arial, sans-serif;
+             margin: 2rem;
+             background-color: #f9f9f9;
+         }
+         h2 {
+             color: #333;
+         }
+         ul {
+             padding: 0;
+             list-style-type: none;
+         }
+         li {
+             background-color: #fff;
+             margin-bottom: 1rem;
+             padding: 1rem;
+             border: 1px solid #ddd;
+             border-radius: 5px;
+         }
+         .back-link {
+             margin-top: 2rem;
+             display: inline-block;
+             color: #0066cc;
+             text-decoration: none;
+         }
+         .back-link:hover {
+             text-decoration: underline;
+         }
+     </style>
+ </head>
+ <body>
+     <h2>My Past Reviews</h2>
+ 
+     {% if reviews %}
+         <ul>
+             {% for review in reviews %}
+                 <li>
+                     <strong>Rent ID:</strong> {{ review[0] }}<br>
+                     <strong>Name:</strong> {{ review[1] }}<br>
+                     <strong>Comment:</strong> {{ review[2] }}<br>
+                     <strong>Rating:</strong> {{ review[3] }}
+                 </li>
+             {% endfor %}
+         </ul>
+     {% else %}
+         <p>You have no reviews yet.</p>
+     {% endif %}
+ 
+     <a class="back-link" href="{{ url_for('driver_dashboard') }}">← Back to Dashboard</a>
+ </body>
+ </html>
+ 
